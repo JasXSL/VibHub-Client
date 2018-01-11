@@ -69,7 +69,7 @@ There are a few things you'll want to do before you install the VibHub app.
 5. Now we need to install some prerequisites. Enter `cd` into the terminal and hit enter.
 6. Enter `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash` and hit enter to install NVM. This may be a bit outdated, so you might be better off [following the instructions here](https://github.com/creationix/nvm). After install, you may want to close the putty session (either by clicking the x or entering `exit`, then hitting enter), and opening it again.
 7. Run `nvm install node` to install the latest verison of nodejs. To test if the install worked, you can enter `node -v` which will output the installed version of node.
-8. Run `sudo apt install pigpio` to install the pigpio library
+8. Run `sudo apt install pigpio git` to install the pigpio library and git.
 
 These should be all dependencies you need. Time to install vibhub.
 
@@ -77,4 +77,10 @@ These should be all dependencies you need. Time to install vibhub.
 ## Making your device accessible through VibHub
 Ok you now have a fully functioning raspberry pi install with all prerequisites. Time to install the actual VibHub app.
 
-1. 
+1. Enter the terminal and type `cd` followed by enter. This will make sure you're at your home directory.
+2. Enter `git clone https://github.com/JasXSL/VibHub-Client` and hit enter. This will download this project into a directory called "VibHub-Client".
+3. Enter the directory by typing `cd VibHub-Client` followed by enter.
+4. Enter `npm install` to automatically install all libraries needed. This will take a while based on your connection speed and the model of raspberry pi you went with.
+5. Lets run the darn thing and see if it worked. Type `sudo node index`. Hopefully you didn't get any error messages. If you did, go to the issues tab on this page and report a new issue. If it DID work, you will see a message in the terminal like 
+
+
