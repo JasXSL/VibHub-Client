@@ -6,7 +6,7 @@ const fs = require('fs'),
 		fwd_pin : 22,
 		pwm_pin : 17,
 		duty_min : 21,			// minimum duty cycle to produce a pulse
-		fps : 60,				// FPS of updates
+		fps : 100,				// FPS of updates
 	}
 ;
 

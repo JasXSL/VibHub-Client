@@ -103,7 +103,7 @@ class Client{
 
 				}
 				
-
+				data = data.split(/\r?\n/).shift();
 				th.id = data;
 				res();
 		
