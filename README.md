@@ -25,9 +25,37 @@ Assembling the hardware is pretty easy:
 Footnotes:
 * The L293D chip has to lay across the divider like that
 * For the USB connector, simply connect the two wires to the outermost pins. Reversing them means it goes backwards, which doesn't matter.
-
+* The USB connector I used wasn't soldered to a plate. If you do get a pre-soldered connector, you'll have to refer to the manual for it.
 
 ## Installing prerequisites
+
+### Raspbian
+1. [Go here](https://www.raspberrypi.org/downloads/raspbian/) Download raspbian lite.
+2. Follow the install instructions [here](https://www.raspberrypi.org/documentation/installation/installing-images/README.md).
+3. After writing the image file, before unplugging the SD card from your computer, find the SD card in your navigator (windows explorer etc). It will be called "boot".
+4. Create a new file directly on the boot drive and name it `wpa_supplicant.conf`
+5. Edit the file and add the following, obviously replacing YourNetworkSSID with the name of your wifi, and "Your Network's Passphrase" with the password for your wifi.
+<pre>
+network={
+       ssid="YourNetworkSSID"
+       psk="Your Network's Passphrase"
+       key_mgmt=WPA-PSK
+}
+</pre>
+6. Eject the drive and plug it into your pi, then connect the power cord to start it up. Boot will take a minute or two.
+
+Footnotes:
+* There are other ways of setting up the wifi, but this lets you do it before even the first boot. Just use google.
+* If you use a pi 3 instead of zero w, you can simply plug in a monitor, keyboard, and network cable. If you have a large memory card you can instead install full raspbian instead of lite, this will give you a GUI when connected to a monitor.
+
+### SSH
+If you use a Pi Zero W, the easiest way to connect and maintain the device is through SSH. For this guide, I will use [putty](http://www.putty.org/). **Make sure your computer is connected to the same router that has the wifi you want to use.**
+
+1. First off we need to figure out the IP of the raspberry pi. This is usually easiest done by accessing your router. Most commonly by going to `http://192.168.0.1`. If that doesn't take you to your router, you can open a command prompt Start Menu > type cmd.exe > hit enter. Type `ipconfig`and hit enter. You're looking for Default Gateway.
+2. Network listing will vary drastically based on your router. The device will be called RaspberryPi or Pi or something like that. I've renamed mine to lab0. In my case it looks like this:
+![Liksys router](https://i.imgur.com/SaypwpI.png)
+3. You're looking for the IP address. In this case 192.168.0.194
+
 
 
 ## Setting up your device
