@@ -33,7 +33,7 @@ Footnotes:
 1. [Go here](https://www.raspberrypi.org/downloads/raspbian/) Download raspbian lite.
 2. Follow the install instructions [here](https://www.raspberrypi.org/documentation/installation/installing-images/README.md).
 3. After writing the image file, before unplugging the SD card from your computer, find the SD card in your navigator (windows explorer etc). It will be called "boot".
-4. Create a new file directly on the boot drive and name it `wpa_supplicant.conf`
+4. **Create a new file** directly on the boot drive and name it `wpa_supplicant.conf`
 5. Edit the file and add the following, obviously replacing YourNetworkSSID with the name of your wifi, and "Your Network's Passphrase" with the password for your wifi.
 <pre>
 network={
@@ -42,7 +42,8 @@ network={
        key_mgmt=WPA-PSK
 }
 </pre>
-6. Eject the drive and plug it into your pi, then connect the power cord to start it up. Boot will take a minute or two.
+6. **Create a new file** on the boot drive and name it `ssh` **No file extension**, this will enable the SSH server by default.
+7. Eject the drive and plug it into your pi, then connect the power cord to start it up. Boot will take a minute or two.
 
 Footnotes:
 * There are other ways of setting up the wifi, but this lets you do it before even the first boot. Just use google.
@@ -54,8 +55,26 @@ If you use a Pi Zero W, the easiest way to connect and maintain the device is th
 1. First off we need to figure out the IP of the raspberry pi. This is usually easiest done by accessing your router. Most commonly by going to `http://192.168.0.1`. If that doesn't take you to your router, you can open a command prompt Start Menu > type cmd.exe > hit enter. Type `ipconfig`and hit enter. You're looking for Default Gateway.
 2. Network listing will vary drastically based on your router. The device will be called RaspberryPi or Pi or something like that. I've renamed mine to lab0. In my case it looks like this:
 ![Liksys router](https://i.imgur.com/SaypwpI.png)
-3. You're looking for the IP address. In this case 192.168.0.194
+3. You're looking for the IP address. In this case `192.168.0.194`
+4. Start up putty. In host name (or IP address) enter the IP from the router, in my case `192.168.0.194`. Hit open at the bottom of the window.
+5. If successful, it will open a new terminal and prompt you for a username and password. The default username is `pi` and password is `raspberry`. If not successful, unplug the device and restart from step 3 in the section above on installing raspbian.
+
+### First setup
+There are a few things you'll want to do before you install the VibHub app.
+
+1. Enter in the terminal `sudo raspi-config`
+2. Select Change User Password (selected by default) and hit enter. Enter a new password to access your device. Make sure to write it down somewhere. If you lose it you'll have to reinstall the entire thing.
+3. (Optional) Go to localization options and setup local and timezone (unless you're in the UK which is default).
+4. Select finish and hit enter. If it prompts you to reboot, do so now, then connect again via putty.
+5. Now we need to install some prerequisites. Enter `cd` into the terminal and hit enter.
+6. Enter `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash` and hit enter to install NVM. This may be a bit outdated, so you might be better off [following the instructions here](https://github.com/creationix/nvm). After install, you may want to close the putty session (either by clicking the x or entering `exit`, then hitting enter), and opening it again.
+7. Run `nvm install node` to install the latest verison of nodejs. To test if the install worked, you can enter `node -v` which will output the installed version of node.
+8. Run `sudo apt install pigpio` to install the pigpio library
+
+These should be all dependencies you need. Time to install vibhub.
 
 
+## Making your device accessible through VibHub
+Ok you now have a fully functioning raspberry pi install with all prerequisites. Time to install the actual VibHub app.
 
-## Setting up your device
+1. 
