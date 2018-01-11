@@ -81,6 +81,41 @@ Ok you now have a fully functioning raspberry pi install with all prerequisites.
 2. Enter `git clone https://github.com/JasXSL/VibHub-Client` and hit enter. This will download this project into a directory called "VibHub-Client".
 3. Enter the directory by typing `cd VibHub-Client` followed by enter.
 4. Enter `npm install` to automatically install all libraries needed. This will take a while based on your connection speed and the model of raspberry pi you went with.
-5. Lets run the darn thing and see if it worked. Type `sudo node index`. Hopefully you didn't get any error messages. If you did, go to the issues tab on this page and report a new issue. If it DID work, you will see a message in the terminal like 
+5. Lets run the darn thing and see if it worked. Type `sudo node index`. Hopefully you didn't get any error messages. If you did, go to the issues tab on this page and report a new issue. If it DID work, you will see a message in the terminal like `Socket Connected, my ID is  bbec4714-acdb-4b1f-99a5-1647a0f910f5`. This ID key is what apps use to interface with your device. You can either copy or write it down somewhere, or create a custom one in the next step. To start using the device, simply enter the device ID into an app that supports the device, and start playing with it! Or if you want to use the API, check out the wiki.
+6. Ok so UUIDv4 isn't very easy to remember, for this purpose we can change the device-id file. Hit ctrl+c to close the app.
+7. Enter `sudo nano device-id`, this brings up the nano text editor.
+8. Delete the key there and replace it with your own custom passphrase. Make sure there are no newlines there. Try to use a long unique passphrase. **If someone else enters the same passphrase on their own device, both of your devices will be controlled from the same commands!** You can also use this yourself if you have multiple VibHub devices that you want to control from a single API call.
+9. Hit ctrl+x followed by enter to save the changes.
+10. Run `sudo node index` to start the app again. You should see that your device id has changed! Keep in mind you'll have to update all apps with your new device ID if you change it.
+
+## Setting your device up as a service
+Ok so now we got the app up and running, but it stops when we close the SSH session. To keep the app running at all times while the device is powered and booted, we'll need to set up a service.
+
+1. Enter the terminal and type in `cd /etc/systemd/system` to take you to the systemd service directory.
+2. Type `sudo nano vibhub.service` to open the text editor.
+3. Enter the following (protip: with putty you can paste by right clicking the window):
+<pre>
+[Unit]
+description=VibHub Device
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/node /home/pi/VibHub-Client/index
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=vibhub
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+</pre>
+4. Type `sudo systemctl enable vibhub` and hit enter
+5. Type `sudo service vibhub start` and hit enter
+
+If everything worked correctly, the VibHub app should now auto run whenever the pi is turned on.
+
+# Making apps
+See the wiki!
 
 
