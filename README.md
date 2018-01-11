@@ -115,6 +115,8 @@ WantedBy=multi-user.target
 
 If everything worked correctly, the VibHub app should now auto run whenever the pi is turned on.
 
+Tip: If you decide to change the device-id after starting the service, you can restart the service with `sudo service vibhub restart`
+
 # Making apps
 See the wiki!
 
