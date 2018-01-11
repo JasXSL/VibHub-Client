@@ -1,0 +1,6 @@
+{
+	"server" : "http://vibhub.dangly.parts",
+	"pwm_pin" : 17,
+	"fwd_pin" : 22,
+	"duty_min" : 22
+}
