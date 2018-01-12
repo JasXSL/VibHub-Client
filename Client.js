@@ -172,6 +172,18 @@ class Program{
 		this.stopTicking(true);
 		
 
+		this.buildTweenChain(stages);
+		this.startTicking();
+
+	}
+
+	// Builds and plays a tween chain
+	// This is a circular function since tween.js repeats are borked
+	buildTweenChain( stages ){
+
+		TWEEN.removeAll();
+		let th = this;
+
 		// Build the tween
 		let tweens = [];
 		for( let stage of stages ){
@@ -183,31 +195,28 @@ class Program{
 				.repeat(stage.repeats)
 				.yoyo(stage.yoyo)
 			;
-			
+
 			// First stage
-			if( this.tween === null )
+			if( !tweens.length )
 				this.tween = tw;
 			else
 				tweens[tweens.length-1].chain(tw);
 			
 			tweens.push(tw);
+
 		}
 
-
-		tweens[tweens.length-1].chain(this.tween).onComplete(() => {
+		tweens[tweens.length-1].onComplete(() => {
 			
-			if( th.repeats < 0 )
-				return;
+			if( th.repeats >= 0 && th.repeats-- === 0 )
+				return th.stopTicking();
 
-			if( th.repeats-- === 0 )
-				th.stopTicking();
-
+			th.buildTweenChain(stages);
+			
 		});
 
 
 		this.tween.start();
-		this.startTicking();
-
 	}
 
 
