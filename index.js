@@ -1,7 +1,7 @@
 const fs = require('fs'),
 	Client = require('./Client'),
 	config = {
-		server : 'http://vibhub.dangly.parts',
+		server : 'http://vibhub.io',
 		debug : false,
 		pwm_pins : [17,27,22,23],
 		duty_min : 53,			// minimum duty cycle to produce a pulse
