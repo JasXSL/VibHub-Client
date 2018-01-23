@@ -3,9 +3,8 @@ const fs = require('fs'),
 	config = {
 		server : 'http://vibhub.dangly.parts',
 		debug : false,
-		fwd_pin : 22,
-		pwm_pin : 17,
-		duty_min : 21,			// minimum duty cycle to produce a pulse
+		pwm_pins : [17,27,22,23],
+		duty_min : 53,			// minimum duty cycle to produce a pulse
 		fps : 100,				// FPS of updates
 	}
 ;

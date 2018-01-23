@@ -14,13 +14,21 @@ class Client{
 
 		let th = this;
 		this.server = config.server;
+		this.interval = null;
+		this.programs = [];
+		
+		for( let pin of config.pwm_pins ){
 
-		this.fwd_pin = new Gpio(config.fwd_pin, {mode : Gpio.OUTPUT});
-		this.pwm_pin = new Gpio(config.pwm_pin, {mode : Gpio.OUTPUT});
-		this.fwd_pin.digitalWrite(1);
-		this.pwm_pin.pwmWrite(0);
+
+			let n = new Gpio(pin, {mode : Gpio.OUTPUT});
+			n.pwmWrite(0);
+			
+			let p = new Program(this, n);
+			this.programs.push(p);
+
+		}
+
 		this.duty_min = config.duty_min;
-		this.program = new Program(this);
 		this.fps = Math.min(Math.max(config.fps,1), 100);	// limit between 1 and 100
 
 		// Initialize
@@ -52,20 +60,12 @@ class Client{
 				if( !buffer || buffer.constructor !== Buffer )
 					return;
 
-				let view = new Int8Array(buffer),
-					task = view[0],
-					data = view[1]
-				;
-
-				if( task === 0 ){
-
-					// Stop tweening, P overrides
-					if( this.program.interval )
-						this.program.stopTicking( true );
+				let view = new Uint8Array(buffer);
+				for( let i = 0; i<this.programs.length; ++i ){
 					
-					
-					this.program.intensity = Math.max(0, Math.min(data, 100));
-					this.program.out();
+					let duty = view[i];
+					this.programs[i].duty = Math.max(0, Math.min(duty, 255));
+					this.programs[i].out();
 
 				}
 
@@ -74,6 +74,11 @@ class Client{
 		}).catch(err => {
 			console.error("Unable to start device", err);
 		});
+
+		// Start ticking
+		this.interval = setInterval(() => {
+			th.tick();
+		}, 1000/this.fps);
 
 	}
 
@@ -113,10 +118,40 @@ class Client{
 
 	}
 
+	tick(){
+
+		TWEEN.update();
+		for( let p of this.programs )
+			p.tick();
+
+	}
 
 	onVibData( data ){
 
-		this.program.set(data);
+		if( !Array.isArray(data) )
+			data = [data];
+
+		for( let point of data ){
+			
+			let targ = data.port;
+			if( isNaN(targ) )
+				targ = -1;
+
+			let targets = this.programs;
+			if( targ > -1 ){
+
+				if( this.programs.length <= targ )
+					continue;
+
+				targets = [this.programs[targ]];
+
+			}
+
+			for( let t of targets )
+				t.set(point);
+
+
+		}
 
 	}
 
@@ -134,15 +169,15 @@ class Client{
 */
 class Program{
 
-	constructor( client ){
+	constructor( client, gpio ){
 		
 		this.parent = client;
+		this.gpio = gpio;
 
-		this.intensity = 0;				// Between 0 and 100
-		this.tween = null;
-		this.interval = null;
+		this.duty = 0;				// Between 0 and 255	
 		this.repeats = 0;
-		
+		this.tweens = [];			// Workaround for broken tween.js chain stopping
+
 		this.out();
 
 	}
@@ -150,7 +185,7 @@ class Program{
 	out(){
 
 		// Clamp to 0 if value is below threshold
-		this.parent.pwm_pin.pwmWrite(this.convertIntensity(this.intensity));
+		this.gpio.pwmWrite(this.convertDuty(this.duty));
 
 	}
 
@@ -168,109 +203,100 @@ class Program{
 		if( isNaN(data.repeats) )
 			data.repeats = 0;
 
-		this.repeats = data.repeats;
-		this.stopTicking(true);
-		
+		this.repeats = data.repeats;		
 
 		this.buildTweenChain(stages);
-		this.startTicking();
 
 	}
 
 	// Builds and plays a tween chain
 	// This is a circular function since tween.js repeats are borked
 	buildTweenChain( stages ){
+		
+		this.stopTicking(true);
 
-		TWEEN.removeAll();
 		let th = this;
 
 		// Build the tween
 		let tweens = [];
 		for( let stage of stages ){
 			
-			//console.log(stage.intensity, stage.duration, stage.repeats);
 			let tw = new TWEEN.Tween(this)
-				.to({intensity:stage.intensity}, stage.duration)
+				.to({duty:stage.duty}, stage.duration)
 				.easing(stage.easing)
 				.repeat(stage.repeats)
 				.yoyo(stage.yoyo)
 			;
 
 			// First stage
-			if( !tweens.length )
-				this.tween = tw;
-			else
+			if( tweens.length )
 				tweens[tweens.length-1].chain(tw);
 			
 			tweens.push(tw);
+			
+			
 
 		}
+
+		this.tweens = tweens;
 
 		tweens[tweens.length-1].onComplete(() => {
 			
 			if( th.repeats >= 0 && th.repeats-- === 0 )
-				return th.stopTicking();
+				return th.stopTicking(false);
 
 			th.buildTweenChain(stages);
 			
 		});
 
-
-		this.tween.start();
-	}
-
-
-	startTicking(){
-
-		let th = this;
-		this.interval = setInterval(() => {
-			th.tick();
-		}, 1000/this.parent.fps);
+		this.tweens[0].start();
 
 	}
+
 
 
 	stopTicking( immediate ){
 
+		this.out();
+
 		let th = this;
-		// Stop the interval
-		clearInterval(this.interval);
-		this.interval = null;
-
+		
 		if( immediate )
-			this.clearTween();
-		else
-			setTimeout(() => { th.clearTween(); }, 1);
+			return this.clearTweens();
 
-		this.out();	// Fixes tween.js broken fuckery
+		setTimeout(() => {
+			th.clearTweens();
+		}, 1);
+
+	}
+
+	clearTweens(){
+
+		this.tweens.map(tw => {
+			if( tw._isPlaying )
+				tw.stop();
+		});
+		this.tweens = [];
 	}
 	
-	clearTween(){
 
-		if( this.tween ){
-			this.tween.stop();
-			TWEEN.removeAll();
-		}
-		this.tween = null;
-
-	}
 
 	tick(){
 
-		this.out();
-		TWEEN.update();		
+		if( this.tweens.length )
+			this.out();
 
 	}
 
 	// Converts a percentage of 0 to 100 to an intensity 0 to 255
-	convertIntensity( input ){
+	convertDuty( input ){
 
 		if( isNaN(input) || input < 1 )
 			return 0;
 
 		// Convert to minimum duty cycle
-		let perc = input/100;
-		let min = this.parent.duty_min/100;
+		let perc = input/255;
+		let min = this.parent.duty_min/255;
 		let max = 1.0;
 		perc = perc*(max-min)+min;
 
@@ -293,7 +319,7 @@ class Program{
 // Data is
 /*
 {
-	i : (int)intensity 		| 0-100
+	i : (int)duty	 		| 0-255
 	d : (int)duration 		| milliseconds
 	e : (str)easing_type 	| Linear.None
 	r : (int)nr_repeats		| Needs to be 0 or above, default 0
@@ -307,7 +333,7 @@ class ProgramStage{
 		this.parent = parent;
 
 		// Defaults
-		this.intensity = 0;		// between 0 and 100, use getDuty()
+		this.duty = 0;		// between 0 and 255
 		this.duration = 0;
 		this.easing = TWEEN.Easing.Linear.None;
 		this.repeats = 0;
@@ -318,7 +344,7 @@ class ProgramStage{
 		else{
 
 			if( !isNaN(data.i) )
-				this.intensity = data.i;
+				this.duty = data.i;
 			
 			if( data.d > 0 )
 				this.duration = Math.floor(data.d);
