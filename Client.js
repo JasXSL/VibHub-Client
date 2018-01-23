@@ -28,6 +28,8 @@ class Client{
 
 		}
 
+		console.log(this.programs.length, "Ports found", config.pwm_pins);
+
 		this.duty_min = config.duty_min;
 		this.fps = Math.min(Math.max(config.fps,1), 100);	// limit between 1 and 100
 
@@ -64,10 +66,12 @@ class Client{
 				for( let i = 0; i<this.programs.length; ++i ){
 					
 					let duty = view[i];
+					this.programs[i].stopTicking(true);
 					this.programs[i].duty = Math.max(0, Math.min(duty, 255));
 					this.programs[i].out();
 
 				}
+
 
 			});
 
@@ -133,7 +137,8 @@ class Client{
 
 		for( let point of data ){
 			
-			let targ = data.port;
+			let targ = point.port;
+			
 			if( isNaN(targ) )
 				targ = -1;
 
@@ -149,7 +154,7 @@ class Client{
 
 			for( let t of targets )
 				t.set(point);
-
+			
 
 		}
 
@@ -180,6 +185,10 @@ class Program{
 
 		this.out();
 
+	}
+
+	index(){
+		return this.parent.programs.indexOf(this);
 	}
 
 	out(){
@@ -233,8 +242,6 @@ class Program{
 				tweens[tweens.length-1].chain(tw);
 			
 			tweens.push(tw);
-			
-			
 
 		}
 
@@ -245,7 +252,10 @@ class Program{
 			if( th.repeats >= 0 && th.repeats-- === 0 )
 				return th.stopTicking(false);
 
-			th.buildTweenChain(stages);
+			setTimeout(() => {
+				th.buildTweenChain(stages);
+			}, 1);
+			
 			
 		});
 
@@ -288,7 +298,7 @@ class Program{
 
 	}
 
-	// Converts a percentage of 0 to 100 to an intensity 0 to 255
+	// Converts the duty cycle to a percentage within threshold.
 	convertDuty( input ){
 
 		if( isNaN(input) || input < 1 )
