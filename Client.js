@@ -57,9 +57,11 @@ class Client{
 			});
 
 			// Vibration level received
-			socket.on('p', buffer => {
+			socket.on('p', data => {
 
-				if( !buffer || buffer.constructor !== Buffer )
+                let buffer = Buffer.from(data, "hex");
+
+                if( !buffer || buffer.constructor !== Buffer )
 					return;
 
 				let view = new Uint8Array(buffer);
