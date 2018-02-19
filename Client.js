@@ -134,6 +134,7 @@ class Client{
 
 	onVibData( data ){
 
+		// Contains programs
 		if( !Array.isArray(data) )
 			data = [data];
 
@@ -145,18 +146,19 @@ class Client{
 				targ = -1;
 
 			let targets = this.programs;
-			if( targ > -1 ){
+			if( targ > 0 ){
 
-				if( this.programs.length <= targ )
-					continue;
-
-				targets = [this.programs[targ]];
+				for( let i = 0; i<this.programs.length; ++i ){
+					
+					if( targ&(1<<i) )
+						targets.push(this.programs[targ]);
+				
+				}
 
 			}
 
 			for( let t of targets )
 				t.set(point);
-			
 
 		}
 
