@@ -1,57 +1,50 @@
-const fs = require('fs'),
-	Client = require('./Client'),
-	config = {
-		server : 'http://vibhub.io',
-		debug : false,
-		pwm_pins : [17,27,22,23],
-		duty_min : 53,			// minimum duty cycle to produce a pulse
-		fps : 100,				// FPS of updates
-	}
+const Client = require('./Client'),
+	Events = require('./EventTypes')
 ;
 
+let client = new Client();
 
-// Get config and init
-fs.readFile(__dirname+'/config.json', 'utf8', (err, data) => {
-	
-	if( err )
-		console.error("Unable to read config, using defaults:", err.code);
-	else{
+client.on(Events.CONNECT, () => {
 
-		try{
-			
-			let json = JSON.parse(data);
-			if( typeof json !== "object" )
-				throw Error("Config is not an object");
-			else{
-				
-				for( let i in json ){
-
-					if( config.hasOwnProperty(i) ){
-
-						if( typeof config[i] === typeof json[i] )
-							config[i] = json[i];
-						else
-							console.log("Invalid type of config", i, "got", typeof json[i], "expected", typeof config[i]);
-
-					}
-					else
-						console.log("Unknown config property", i);
-
-				}
-
-			}
-
-		}catch(e){
-			console.error("Config read error, using defaults:", e.code);
-		}
-
-		
-
-	}
-	
-	new Client(config);
+	console.log("Client connected!");
 
 });
 
+client.on(Events.DISCONNECT, () => {
 
+	console.log("Client disconnected");
+
+});
+
+client.on(Events.APP_CONNECTED, (name, id) => {
+
+	console.log("App connected", name, id);
+	console.log("Sending custom message");
+	client.sendCustomToApp(name, "ITWERKS!");
+
+});
+
+client.on(Events.APP_DISCONNECTED, (name, id) => {
+
+	console.log("App disconnected", name, id);
+
+});
+
+client.on(Events.CUSTOM_MESSAGE, (name, id, data) => {
+
+	console.log("Custom data received", name, id, data);
+
+});
+
+client.on(Events.PROGRAM_DATA, program => {
+	
+	console.log("Program received", program);
+
+});
+
+client.on(Events.PWM_DATA, data => {
+	
+	console.log("Pwm data received", data);
+
+});
 

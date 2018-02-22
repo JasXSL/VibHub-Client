@@ -5,90 +5,113 @@ const io = require('socket.io-client'),
 	uuid = require('uuid/v4'),
 	fs = require('fs'),
 	Gpio = require('pigpio').Gpio,
-	TWEEN = require('@tweenjs/tween.js')
+	TWEEN = require('@tweenjs/tween.js'),
+	EventEmitter = require('events'),
+	Events = require('./EventTypes')
 ;
 
 class Client{
 	
+
+	// INITIALIZATION
 	constructor( config ){
 
 		let th = this;
-		this.server = config.server;
 		this.interval = null;
 		this.programs = [];
-		
-		for( let pin of config.pwm_pins ){
+		this.events = [];
+		this.eventEmitter = new EventEmitter();
+		this.socket = null;
+
+		// Default config
+		this.config = {
+			server : 'http://vibhub.io',
+			debug : false,
+			pwm_pins : [17,27,22,23],
+			duty_min : 53,			// minimum duty cycle to produce a pulse
+			fps : 100,				// FPS of updates
+		};
 
 
-			let n = new Gpio(pin, {mode : Gpio.OUTPUT});
-			n.pwmWrite(0);
-			
-			let p = new Program(this, n);
-			this.programs.push(p);
+		this.loadConfig()
+		.then(() => {
 
-		}
+			// Initialize GPIOs
+			for( let pin of this.config.pwm_pins ){
 
-		console.log(this.programs.length, "Ports found", config.pwm_pins);
-
-		this.duty_min = config.duty_min;
-		this.fps = Math.min(Math.max(config.fps,1), 100);	// limit between 1 and 100
-
-		// Initialize
-		this.getDeviceId()
-		.then( () => {
-
-			console.log("Connecting to ", th.server);
-			let socket = io.connect(th.server);
-
-			socket.on('connect', () => {
+				let n = new Gpio(pin, {mode : Gpio.OUTPUT});
+				n.pwmWrite(0);
 				
-				console.log("Socket Connected, my ID is ", th.id);
-				socket.emit('id', th.id);
+				let p = new Program(this, n);
+				this.programs.push(p);
+	
+			}
 
-			});
-			
-			socket.on('disconnect', () => {
-				console.log("Socket Connection lost!");
-			});
-			
-			// Vibration program received
-			socket.on('vib', data => {
-				th.onVibData(data);
-			});
+			this.config.fps = Math.min(Math.max(this.config.fps,1), 100);	// limit between 1 and 100
+	
+			// Initialize
+			this.getDeviceId()
+			.then( () => {
 
-			// Vibration level received
-			socket.on('p', data => {
+				let socket = io.connect(th.config.server);
+				this.socket = socket;
 
-                let buffer = Buffer.from(data, "hex");
-
-                if( !buffer || buffer.constructor !== Buffer )
-					return;
-
-				let view = new Uint8Array(buffer);
-				for( let i = 0; i<this.programs.length; ++i ){
+				socket.on('connect', () => {
 					
-					let duty = view[i];
-					this.programs[i].stopTicking(true);
-					this.programs[i].duty = Math.max(0, Math.min(duty, 255));
-					this.programs[i].out();
+					//console.log("Socket Connected, my device ID is ", "'"+th.id+"'");
+					socket.emit('id', th.id);
+					th.raise(Events.CONNECT);
+	
+				});
+				
+				socket.on('disconnect', () => { th.raise(Events.DISCONNECT); });
+				
+				// Vibration program received
+				socket.on('vib', data => { th.onVibData(data); th.raise(Events.PROGRAM_DATA, data); });
+	
+				// Vibration level received
+				socket.on('p', data => { th.onPwmData(data); th.raise(Events.PWM_DATA, data); });
 
-				}
+				socket.on('app', data => { th.raise(Events.APP_CONNECTED, data); });
 
+				socket.on('app_offline', data => { th.raise(Events.APP_DISCONNECTED, data); });
 
+				socket.on('dCustom', data => { th.raise(Events.CUSTOM_MESSAGE, data); });
+	
+			}).catch(err => {
+				console.error("Unable to start device", err);
 			});
+	
+			// Start ticking
+			this.interval = setInterval(() => {
+				th.tick();
+			}, 1000/this.config.fps);
 
-		}).catch(err => {
-			console.error("Unable to start device", err);
+		})
+		.catch(err => {
+			console.error("Unable to load config, using defaults", err);
 		});
-
-		// Start ticking
-		this.interval = setInterval(() => {
-			th.tick();
-		}, 1000/this.fps);
 
 	}
 
-	// Gets a new device ID
+	// Events for custom code
+	on( evt, callback ){
+
+		this.eventEmitter.on(evt, callback);
+		return callback;
+
+	}
+
+	off( evt){
+		this.eventEmitter.removeListener(evt, fn);
+	}
+
+	// evt, args
+	raise( evt, args ){
+		this.eventEmitter.emit.apply(this.eventEmitter, [evt].concat(args));
+	}
+
+	// CONFIGURATION
 	getDeviceId(){
 
 		let th = this;
@@ -124,6 +147,59 @@ class Client{
 
 	}
 
+	loadConfig(){
+
+		let th = this;
+		return new Promise((res, rej) => {
+
+			// Get config and init
+			fs.readFile(__dirname+'/config.json', 'utf8', (err, data) => {
+				
+				if( err )
+					return rej("Unable to read config, using defaults: "+err.code);
+				else{
+
+					try{
+						
+						let json = JSON.parse(data);
+						if( typeof json !== "object" )
+							return rej("Config is not an object");
+						else{
+							
+							for( let i in json ){
+
+								if( th.config.hasOwnProperty(i) ){
+
+									if( typeof th.config[i] === typeof json[i] )
+										th.config[i] = json[i];
+									else
+										console.log("Invalid type of config", i, "got", typeof json[i], "expected", typeof th.config[i]);
+
+								}
+								else
+									console.log("Unknown config property", i);
+
+							}
+
+						}
+
+					}catch(e){
+						console.error("Config read error, using defaults:", e.code);
+					}
+
+					
+
+				}
+				
+				res();
+
+			});
+
+		});
+
+	}
+
+	// PROGRAM LOOP
 	tick(){
 
 		TWEEN.update();
@@ -132,6 +208,8 @@ class Client{
 
 	}
 
+
+	// Program(s) received
 	onVibData( data ){
 
 		// Contains programs
@@ -164,9 +242,33 @@ class Client{
 
 	}
 
+	// Pwm hex received
+	onPwmData( data ){
+
+		let buffer = Buffer.from(data, "hex");
+
+		let view = new Uint8Array(buffer);
+		for( let i = 0; i<this.programs.length; ++i ){
+			
+			
+			let duty = view[i];
+			this.programs[i].stopTicking(true);
+			this.programs[i].duty = Math.max(0, Math.min(duty, 255));
+			this.programs[i].out();
+
+		}
+
+	}
 	
+	// Send custom data to an app by name
+	sendCustomToApp( appName, data ){
+
+		this.socket.emit("aCustom", [appName, data]);
+
+	}
 
 }
+
 
 
 // Program is a tween cycle for the vib, input for set is:
@@ -310,7 +412,7 @@ class Program{
 
 		// Convert to minimum duty cycle
 		let perc = input/255;
-		let min = this.parent.duty_min/255;
+		let min = this.parent.config.duty_min/255;
 		let max = 1.0;
 		perc = perc*(max-min)+min;
 
