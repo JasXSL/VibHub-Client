@@ -173,11 +173,11 @@ class Client{
 									if( typeof th.config[i] === typeof json[i] )
 										th.config[i] = json[i];
 									else
-										console.log("Invalid type of config", i, "got", typeof json[i], "expected", typeof th.config[i]);
+										console.error("Invalid type of config", i, "got", typeof json[i], "expected", typeof th.config[i]);
 
 								}
 								else
-									console.log("Unknown config property", i);
+									console.error("Unknown config property", i);
 
 							}
 
