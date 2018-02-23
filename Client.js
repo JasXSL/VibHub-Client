@@ -58,7 +58,6 @@ class Client{
 
 				socket.on('connect', () => {
 					
-					//console.log("Socket Connected, my device ID is ", "'"+th.id+"'");
 					socket.emit('id', th.id);
 					th.raise(Events.CONNECT);
 	
@@ -263,8 +262,6 @@ class Client{
 				nr = t;
 				t = parseInt(data.substr(0,2), 16);
 				data = data.substr(2); // Remove
-
-				console.log("PS", nr, t);
 
 			}
 
