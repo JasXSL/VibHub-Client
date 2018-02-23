@@ -71,6 +71,8 @@ class Client{
 	
 				// Vibration level received
 				socket.on('p', data => { th.onPwmData(data); th.raise(Events.PWM_DATA, data); });
+				socket.on('ps', data => { th.onPwmData(data, 'ps'); th.raise(Events.PWM_DATA_SPECIFIC, data); });
+				
 
 				socket.on('app', data => { th.raise(Events.APP_CONNECTED, data); });
 
@@ -243,23 +245,43 @@ class Client{
 	}
 
 	// Pwm hex received
-	onPwmData( data ){
+	onPwmData( data, type ){
 
-		let buffer = Buffer.from(data, "hex");
+		type = type || 'p';
 
-		let view = new Uint8Array(buffer);
-		for( let i = 0; i<this.programs.length; ++i ){
+		if( typeof data !== "string" || data.length%2 )
+			return;
+
+		let add = 1+(type=='ps');
+		for( let i = 0; data; i+=add ){
 			
-			
-			let duty = view[i];
-			this.programs[i].stopTicking(true);
-			this.programs[i].duty = Math.max(0, Math.min(duty, 255));
-			this.programs[i].out();
+			let nr = i,
+				t = parseInt(data.substr(0,2), 16); // PWM value or in case of ps, port
+			data = data.substr(2);	// Remove
+			if( type === 'ps' ){
+
+				nr = t;
+				t = parseInt(data.substr(0,2), 16);
+				data = data.substr(2); // Remove
+
+				console.log("PS", nr, t);
+
+			}
+
+			if( this.programs[nr] ){
+				
+				this.programs[nr].stopTicking(true);
+				this.programs[nr].duty = Math.max(0, Math.min(t, 255));
+				this.programs[nr].out();
+
+			}
 
 		}
 
 	}
 	
+
+
 	// Send custom data to an app by name
 	sendCustomToApp( appName, data ){
 

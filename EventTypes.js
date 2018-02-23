@@ -4,6 +4,8 @@ module.exports = {
 	CONNECT : 'connect',				// Socket connected
 	DISCONNECT : 'disconnect',			// Socket disconnected
 	PWM_DATA : 'pwm',					// (obj)data | PWM received
+	PWM_DATA_SPECIFIC : 'pwms',			// (obj)data | PWM received with port specifiers
+	
 	PROGRAM_DATA : 'program',			// (obj)data | Program data received
 
 	APP_CONNECTED : 'appConnected',		// (str)appName, (str)connectionID | An app is now ready to send to this device
