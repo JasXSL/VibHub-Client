@@ -30,6 +30,7 @@ class Client{
 			pwm_pins : [17,27,22,23],
 			duty_min : 53,			// minimum duty cycle to produce a pulse
 			fps : 100,				// FPS of updates
+			events_only : false,	// Ignores running updates from vib, p, ps. Useful if you want to do your own custom logic in the index script
 		};
 
 
@@ -66,11 +67,29 @@ class Client{
 				socket.on('disconnect', () => { th.raise(Events.DISCONNECT); });
 				
 				// Vibration program received
-				socket.on('vib', data => { th.onVibData(data); th.raise(Events.PROGRAM_DATA, data); });
+				socket.on('vib', data => { 
+
+					if( !th.config.events_only )
+						th.onVibData(data); 
+					th.raise(Events.PROGRAM_DATA, data);
+
+				});
 	
 				// Vibration level received
-				socket.on('p', data => { th.onPwmData(data); th.raise(Events.PWM_DATA, data); });
-				socket.on('ps', data => { th.onPwmData(data, 'ps'); th.raise(Events.PWM_DATA_SPECIFIC, data); });
+				socket.on('p', data => { 
+
+					if( !th.config.events_only )
+						th.onPwmData(data); 
+					th.raise(Events.PWM_DATA, data); 
+
+				});
+				socket.on('ps', data => { 
+
+					if( !th.config.events_only )
+						th.onPwmData(data, 'ps'); 
+					th.raise(Events.PWM_DATA_SPECIFIC, data); 
+
+				});
 				
 
 				socket.on('app', data => { th.raise(Events.APP_CONNECTED, data); });
@@ -109,7 +128,7 @@ class Client{
 
 	// evt, args
 	raise( evt, args ){
-		this.eventEmitter.emit.apply(this.eventEmitter, [evt].concat(args));
+		return this.eventEmitter.emit.apply(this.eventEmitter, [evt].concat(args));
 	}
 
 	// CONFIGURATION
@@ -486,6 +505,8 @@ class ProgramStage{
 
 			if( data.r > 0 )
 				this.repeats = Math.floor(data.r);
+			else if( data.r === -1 )
+				this.repeats = Infinity;
 
 			this.yoyo = (data.y == true);
 
