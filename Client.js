@@ -34,7 +34,7 @@ class Client{
 		};
 
 
-		this.loadConfig()
+		this.init = this.loadConfig()
 		.then(() => {
 
 			// Initialize GPIOs
@@ -336,7 +336,7 @@ class Program{
 	}
 
 	out(){
-
+		
 		// Clamp to 0 if value is below threshold
 		this.gpio.pwmWrite(this.convertDuty(this.duty));
 
@@ -455,7 +455,7 @@ class Program{
 		perc = perc*(max-min)+min;
 
 		let intensity = Math.round(perc*255);
-		if( isNaN(intensity) || intensity < 0 ) 
+		if( isNaN(intensity) || intensity <= 0 ) 
 			intensity = 0;
 		
 		if( intensity > 255 )
