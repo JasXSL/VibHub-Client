@@ -362,6 +362,19 @@ class Program{
 
 	}
 
+	rand(obj, absMin, absMax, defaultMin, defaultMax){
+		let min = obj.min, max = obj.max;
+		let offset = isNaN(obj.offset) ? 0 : parseInt(obj.offset), 
+			multi = isNaN(obj.multi) ? 1 : parseInt(obj.multi)
+		;
+		min = isNaN(min) ? defaultMin : min;
+		max = isNaN(max) ? defaultMax : max;
+		if(min > max)
+			min = max;
+		let out = Math.round(Math.random()*(max-min)+min)*multi+offset;
+		return Math.min(Math.max(out, absMin), absMax);
+	}
+
 	// Builds and plays a tween chain
 	// This is a circular function since tween.js repeats are borked
 	buildTweenChain( stages ){
@@ -378,21 +391,27 @@ class Program{
 			let duty = stage.duty;
 			if( duty === false )
 				duty = preDuty;
-			else if( typeof duty == "object" ){
-				let min = isNaN(duty.min) ? 0 : Math.abs(duty.min),
-					max = isNaN(duty.max) ? 255 : Math.abs(duty.max)
-				;
-				duty = Math.round(Math.random()*(max-min)+min);
-			}
+			else if( typeof duty == "object" )
+				duty = this.rand(duty, 0, 255, 0, 255);
 			else if( isNaN(duty) )
 				duty = 0;
-
 			preDuty = duty;
 
+			let duration = stage.duration;
+			if(typeof duration === "object")
+				duration = this.rand(duration, 0, Infinity, 0, 10000);
+			else if( isNaN(duration) || duration < 0 )
+				duration = 0;
+
+
+			let repeats = stage.repeats;
+			if(typeof repeats === "object")
+				repeats = this.rand(repeats, 0, Infinity, 0, 9);
+
 			let tw = new TWEEN.Tween(this)
-				.to({duty:duty}, stage.duration)
+				.to({duty:duty}, duration)
 				.easing(stage.easing)
-				.repeat(stage.repeats)
+				.repeat(repeats)
 				.yoyo(stage.yoyo)
 			;
 
@@ -516,10 +535,14 @@ class ProgramStage{
 
 			this.duty = data.i;
 			
-			if( data.d > 0 )
+			if( typeof data.d === "object" )
+				this.duration = data.d;
+			else if( data.d > 0 )
 				this.duration = Math.floor(data.d);
 
-			if( data.r > 0 )
+			if( typeof data.r === "object" )
+				this.repeats = data.r;
+			else if( data.r > 0 )
 				this.repeats = Math.floor(data.r);
 			else if( data.r === -1 )
 				this.repeats = Infinity;
