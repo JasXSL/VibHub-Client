@@ -323,7 +323,7 @@ class Program{
 		this.parent = client;
 		this.gpio = gpio;
 
-		this.duty = 0;				// Between 0 and 255	
+		this.duty = 0;				// Between 0 and 255. Active duty cycle
 		this.repeats = 0;
 		this.tweens = [];			// Workaround for broken tween.js chain stopping
 
@@ -372,10 +372,25 @@ class Program{
 
 		// Build the tween
 		let tweens = [];
+		let preDuty = this.duty;
 		for( let stage of stages ){
 			
+			let duty = stage.duty;
+			if( duty === false )
+				duty = preDuty;
+			else if( typeof duty == "object" ){
+				let min = isNaN(duty.min) ? 0 : Math.abs(duty.min),
+					max = isNaN(duty.max) ? 255 : Math.abs(duty.max)
+				;
+				duty = Math.round(Math.random()*(max-min)+min);
+			}
+			else if( isNaN(duty) )
+				duty = 0;
+
+			preDuty = duty;
+
 			let tw = new TWEEN.Tween(this)
-				.to({duty:stage.duty}, stage.duration)
+				.to({duty:duty}, stage.duration)
 				.easing(stage.easing)
 				.repeat(stage.repeats)
 				.yoyo(stage.yoyo)
@@ -473,7 +488,7 @@ class Program{
 // Data is
 /*
 {
-	i : (int)duty	 		| 0-255
+	i : (int)duty	 		| 0-255 || false (use existing value) || {min:(int)min, max:(int)max} RNG
 	d : (int)duration 		| milliseconds
 	e : (str)easing_type 	| Linear.None
 	r : (int)nr_repeats		| Needs to be 0 or above, default 0
@@ -488,6 +503,8 @@ class ProgramStage{
 
 		// Defaults
 		this.duty = 0;		// between 0 and 255
+							// Can also be false to use the previous value
+							// Can also be {min:(int)minValue, max:(int)maxValue}
 		this.duration = 0;
 		this.easing = TWEEN.Easing.Linear.None;
 		this.repeats = 0;
@@ -497,8 +514,7 @@ class ProgramStage{
 			console.error("Invalid stage received", data);
 		else{
 
-			if( !isNaN(data.i) )
-				this.duty = data.i;
+			this.duty = data.i;
 			
 			if( data.d > 0 )
 				this.duration = Math.floor(data.d);
