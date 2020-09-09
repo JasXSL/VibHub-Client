@@ -36,7 +36,7 @@ client.on(Events.CUSTOM_MESSAGE, (name, id, data) => {
 
 });
 
-/* // These may be sent very frequently
+ // These may be sent very frequently
 
 client.on(Events.PROGRAM_DATA, program => {
 	
@@ -50,4 +50,3 @@ client.on(Events.PWM_DATA, data => {
 
 });
 
-*/
