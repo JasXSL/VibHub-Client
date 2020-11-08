@@ -25,7 +25,7 @@ class Client{
 
 		// Default config
 		this.config = {
-			server : 'http://vibhub.io',
+			server : 'https://vibhub.io',
 			debug : false,
 			pwm_pins : [17,27,22,23],
 			duty_min : 53,			// minimum duty cycle to produce a pulse
